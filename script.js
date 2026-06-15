@@ -2,282 +2,239 @@
    Amol Dabholkar — Portfolio
    script.js  (vanilla JS, no dependencies)
    ------------------------------------------------------------
-   Features:
-     1.  Theme toggle (dark/light) with localStorage persistence
-     2.  Mobile hamburger menu
-     3.  Navbar scrolled state + active-section highlight
-     4.  On-scroll reveal animations (IntersectionObserver)
-     5.  Animated count-up stats
-     6.  Hero typing effect (cycling roles)
-     7.  Terminal "boot" animation
-     8.  Back-to-top button
-     9.  Footer year
-     10. Contact form (Formspree) with graceful fallback
+   Hardened build:
+     - Reveal runs FIRST and is fail-safe (content never stays hidden)
+     - Every element lookup is guarded, so one missing node can't
+       break the rest of the page
+     - Works even if IntersectionObserver is unavailable
+   Features: theme toggle · mobile menu · active-section nav ·
+   scroll reveal · count-up stats · typing effect · terminal boot ·
+   back-to-top · footer year · contact form (Formspree)
    ============================================================ */
 
 (function () {
   "use strict";
 
-  // Respect users who prefer less motion
-  const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const html = document.documentElement;
+  var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var hasIO = "IntersectionObserver" in window;
+  var html = document.documentElement;
+  function $(id) { return document.getElementById(id); }
 
   /* ----------------------------------------------------------
-     1. THEME TOGGLE
+     1. ON-SCROLL REVEAL  (runs first so nothing gets stuck hidden)
   ---------------------------------------------------------- */
-  const themeToggle = document.getElementById("themeToggle");
-
-  function setThemeIcon(theme) {
-    const icon = themeToggle.querySelector("i");
-    if (theme === "light") {
-      icon.className = "fa-solid fa-sun";
-      themeToggle.setAttribute("aria-label", "Switch to dark theme");
-    } else {
-      icon.className = "fa-solid fa-moon";
-      themeToggle.setAttribute("aria-label", "Switch to light theme");
+  (function reveal() {
+    var els = document.querySelectorAll(".reveal");
+    // Reduced motion or no observer support: just show everything.
+    if (REDUCED || !hasIO) {
+      els.forEach(function (el) { el.classList.add("is-visible"); });
+      return;
     }
-  }
-  // Sync icon with whatever the no-FOUC head script already applied
-  setThemeIcon(html.getAttribute("data-theme") || "dark");
-
-  themeToggle.addEventListener("click", function () {
-    const next = html.getAttribute("data-theme") === "light" ? "dark" : "light";
-    html.setAttribute("data-theme", next);
-    setThemeIcon(next);
-    try { localStorage.setItem("theme", next); } catch (e) { /* storage blocked — ignore */ }
-  });
-
-  /* ----------------------------------------------------------
-     2. MOBILE HAMBURGER MENU
-  ---------------------------------------------------------- */
-  const burger = document.getElementById("navBurger");
-  const navLinks = document.getElementById("primary-nav");
-
-  function closeMenu() {
-    navLinks.classList.remove("is-open");
-    burger.setAttribute("aria-expanded", "false");
-    burger.setAttribute("aria-label", "Open menu");
-  }
-  function openMenu() {
-    navLinks.classList.add("is-open");
-    burger.setAttribute("aria-expanded", "true");
-    burger.setAttribute("aria-label", "Close menu");
-  }
-
-  burger.addEventListener("click", function () {
-    navLinks.classList.contains("is-open") ? closeMenu() : openMenu();
-  });
-  // Close after tapping a link, or pressing Escape
-  navLinks.querySelectorAll("a").forEach(function (a) {
-    a.addEventListener("click", closeMenu);
-  });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeMenu();
-  });
+    // Opt in to the hide->reveal animation only now that JS is running.
+    html.classList.add("reveal-anim");
+    var obs = new IntersectionObserver(function (entries, o) {
+      entries.forEach(function (entry, i) {
+        if (entry.isIntersecting) {
+          setTimeout(function () { entry.target.classList.add("is-visible"); }, i * 70);
+          o.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+    els.forEach(function (el) { obs.observe(el); });
+    // Failsafe: reveal everything after 3s even if the observer misbehaves.
+    setTimeout(function () { els.forEach(function (el) { el.classList.add("is-visible"); }); }, 3000);
+  })();
 
   /* ----------------------------------------------------------
-     3. NAVBAR scrolled state + ACTIVE SECTION highlight
+     2. THEME TOGGLE (dark/light) with localStorage persistence
   ---------------------------------------------------------- */
-  const nav = document.querySelector(".nav");
-  const sections = Array.from(document.querySelectorAll("main section[id]"));
-  const linkFor = {};
-  document.querySelectorAll(".nav__link").forEach(function (l) {
-    linkFor[l.getAttribute("href").slice(1)] = l;
-  });
+  var themeToggle = $("themeToggle");
+  if (themeToggle) {
+    var setIcon = function (t) {
+      var i = themeToggle.querySelector("i");
+      if (i) i.className = (t === "light") ? "fa-solid fa-sun" : "fa-solid fa-moon";
+      themeToggle.setAttribute("aria-label", (t === "light") ? "Switch to dark theme" : "Switch to light theme");
+    };
+    setIcon(html.getAttribute("data-theme") || "dark");
+    themeToggle.addEventListener("click", function () {
+      var next = (html.getAttribute("data-theme") === "light") ? "dark" : "light";
+      html.setAttribute("data-theme", next);
+      setIcon(next);
+      try { localStorage.setItem("theme", next); } catch (e) { /* storage blocked */ }
+    });
+  }
+
+  /* ----------------------------------------------------------
+     3. MOBILE HAMBURGER MENU
+  ---------------------------------------------------------- */
+  var burger = $("navBurger");
+  var navLinks = $("primary-nav");
+  if (burger && navLinks) {
+    var closeMenu = function () {
+      navLinks.classList.remove("is-open");
+      burger.setAttribute("aria-expanded", "false");
+      burger.setAttribute("aria-label", "Open menu");
+    };
+    var openMenu = function () {
+      navLinks.classList.add("is-open");
+      burger.setAttribute("aria-expanded", "true");
+      burger.setAttribute("aria-label", "Close menu");
+    };
+    burger.addEventListener("click", function () {
+      navLinks.classList.contains("is-open") ? closeMenu() : openMenu();
+    });
+    navLinks.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", closeMenu); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+  }
+
+  /* ----------------------------------------------------------
+     4. NAVBAR scrolled state + BACK-TO-TOP + ACTIVE SECTION
+  ---------------------------------------------------------- */
+  var nav = document.querySelector(".nav");
+  var toTop = $("toTop");
 
   function onScroll() {
-    nav.classList.toggle("is-scrolled", window.scrollY > 8);
-    toggleToTop();
+    if (nav) nav.classList.toggle("is-scrolled", window.scrollY > 8);
+    if (toTop) toTop.classList.toggle("is-visible", window.scrollY > 600);
   }
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
-  // Highlight the section currently in view
-  const navObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      const link = linkFor[entry.target.id];
-      if (!link) return;
-      if (entry.isIntersecting) {
-        document.querySelectorAll(".nav__link.is-active").forEach(function (a) {
-          a.classList.remove("is-active");
-          a.removeAttribute("aria-current");
-        });
-        link.classList.add("is-active");
-        link.setAttribute("aria-current", "true");
-      }
+  if (toTop) {
+    toTop.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: REDUCED ? "auto" : "smooth" });
     });
-  }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
-  sections.forEach(function (s) { navObserver.observe(s); });
+  }
 
-  /* ----------------------------------------------------------
-     4. ON-SCROLL REVEAL ANIMATIONS
-  ---------------------------------------------------------- */
-  const reveals = document.querySelectorAll(".reveal");
-  if (REDUCED) {
-    // Show everything immediately
-    reveals.forEach(function (el) { el.classList.add("is-visible"); });
-  } else {
-    const revealObserver = new IntersectionObserver(function (entries, obs) {
-      entries.forEach(function (entry, i) {
-        if (entry.isIntersecting) {
-          // small stagger for groups entering together
-          setTimeout(function () { entry.target.classList.add("is-visible"); }, i * 70);
-          obs.unobserve(entry.target);
+  var linkFor = {};
+  document.querySelectorAll(".nav__link").forEach(function (l) {
+    linkFor[l.getAttribute("href").slice(1)] = l;
+  });
+  if (hasIO) {
+    var navObs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var link = linkFor[entry.target.id];
+        if (link && entry.isIntersecting) {
+          document.querySelectorAll(".nav__link.is-active").forEach(function (a) {
+            a.classList.remove("is-active");
+            a.removeAttribute("aria-current");
+          });
+          link.classList.add("is-active");
+          link.setAttribute("aria-current", "true");
         }
       });
-    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
-    reveals.forEach(function (el) { revealObserver.observe(el); });
+    }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+    document.querySelectorAll("main section[id]").forEach(function (s) { navObs.observe(s); });
   }
 
   /* ----------------------------------------------------------
      5. ANIMATED COUNT-UP STATS
   ---------------------------------------------------------- */
   function animateCount(el) {
-    const target = parseFloat(el.getAttribute("data-count"));
-    const decimals = parseInt(el.getAttribute("data-decimals") || "0", 10);
-    const suffix = el.getAttribute("data-suffix") || "";
-    const duration = 1500;
-
-    if (REDUCED) {
-      el.textContent = target.toFixed(decimals) + suffix;
-      return;
-    }
-    const start = performance.now();
+    var target = parseFloat(el.getAttribute("data-count"));
+    var decimals = parseInt(el.getAttribute("data-decimals") || "0", 10);
+    var suffix = el.getAttribute("data-suffix") || "";
+    if (REDUCED) { el.textContent = target.toFixed(decimals) + suffix; return; }
+    var dur = 1500, start = performance.now();
     function tick(now) {
-      const p = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      var p = Math.min((now - start) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
       el.textContent = (target * eased).toFixed(decimals) + suffix;
       if (p < 1) requestAnimationFrame(tick);
       else el.textContent = target.toFixed(decimals) + suffix;
     }
     requestAnimationFrame(tick);
   }
-
-  const counters = document.querySelectorAll("[data-count]");
-  const countObserver = new IntersectionObserver(function (entries, obs) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        animateCount(entry.target);
-        obs.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.5 });
-  counters.forEach(function (c) { countObserver.observe(c); });
+  var counters = document.querySelectorAll("[data-count]");
+  if (counters.length && hasIO) {
+    var cObs = new IntersectionObserver(function (entries, o) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { animateCount(entry.target); o.unobserve(entry.target); }
+      });
+    }, { threshold: 0.5 });
+    counters.forEach(function (c) { cObs.observe(c); });
+  } else {
+    counters.forEach(function (c) { animateCount(c); });
+  }
 
   /* ----------------------------------------------------------
      6. HERO TYPING EFFECT (cycling roles)
   ---------------------------------------------------------- */
-  const typedEl = document.getElementById("typed");
-  const phrases = ["SDET", "Automation Architect", "API & Mobile Testing", "CI/CD"];
-
+  var typedEl = $("typed");
+  var phrases = ["SDET", "Automation Architect", "API & Mobile Testing", "CI/CD"];
   if (typedEl) {
     if (REDUCED) {
       typedEl.textContent = phrases[0];
     } else {
-      let pIndex = 0, cIndex = 0, deleting = false;
-      function type() {
-        const current = phrases[pIndex];
-        typedEl.textContent = current.slice(0, cIndex);
-        let delay = deleting ? 45 : 90;
-
-        if (!deleting && cIndex === current.length) {
-          delay = 1400;            // pause at full word
-          deleting = true;
-        } else if (deleting && cIndex === 0) {
-          deleting = false;
-          pIndex = (pIndex + 1) % phrases.length;
-          delay = 350;
-        } else {
-          cIndex += deleting ? -1 : 1;
-        }
+      var pi = 0, ci = 0, del = false;
+      var type = function () {
+        var cur = phrases[pi];
+        typedEl.textContent = cur.slice(0, ci);
+        var delay = del ? 45 : 90;
+        if (!del && ci === cur.length) { delay = 1400; del = true; }
+        else if (del && ci === 0) { del = false; pi = (pi + 1) % phrases.length; delay = 350; }
+        else { ci += del ? -1 : 1; }
         setTimeout(type, delay);
-      }
+      };
       type();
     }
   }
 
   /* ----------------------------------------------------------
-     7. TERMINAL "BOOT" ANIMATION (reveal lines one by one)
+     7. TERMINAL "BOOT" ANIMATION
   ---------------------------------------------------------- */
-  const terminal = document.getElementById("terminal");
-  if (terminal && !REDUCED) {
-    html.classList.add("anim-on"); // CSS hides lines until .shown is added
-    const lines = Array.from(terminal.querySelectorAll(".term__line"));
-    let started = false;
-
-    function bootTerminal() {
+  var terminal = $("terminal");
+  if (terminal && !REDUCED && hasIO) {
+    html.classList.add("anim-on");
+    var lines = Array.prototype.slice.call(terminal.querySelectorAll(".term__line"));
+    var started = false;
+    var boot = function () {
       if (started) return;
       started = true;
       lines.forEach(function (line, i) {
         setTimeout(function () { line.classList.add("shown"); }, 350 + i * 420);
       });
-    }
-    // Start when the terminal scrolls into view (it's above the fold, so this fires on load)
-    const termObserver = new IntersectionObserver(function (entries, obs) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) { bootTerminal(); obs.disconnect(); }
-      });
+    };
+    var tObs = new IntersectionObserver(function (entries, o) {
+      entries.forEach(function (entry) { if (entry.isIntersecting) { boot(); o.disconnect(); } });
     }, { threshold: 0.3 });
-    termObserver.observe(terminal);
+    tObs.observe(terminal);
   }
 
   /* ----------------------------------------------------------
-     8. BACK-TO-TOP BUTTON
+     8. FOOTER YEAR
   ---------------------------------------------------------- */
-  const toTop = document.getElementById("toTop");
-  function toggleToTop() {
-    toTop.classList.toggle("is-visible", window.scrollY > 600);
-  }
-  toTop.addEventListener("click", function () {
-    window.scrollTo({ top: 0, behavior: REDUCED ? "auto" : "smooth" });
-  });
-
-  /* ----------------------------------------------------------
-     9. FOOTER YEAR
-  ---------------------------------------------------------- */
-  const yearEl = document.getElementById("year");
+  var yearEl = $("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
   /* ----------------------------------------------------------
-     10. CONTACT FORM (Formspree) with graceful fallback
+     9. CONTACT FORM (Formspree) with graceful fallback
   ---------------------------------------------------------- */
-  const form = document.getElementById("contactForm");
-  const status = document.getElementById("formStatus");
-
-  if (form) {
+  var form = $("contactForm");
+  var status = $("formStatus");
+  if (form && status) {
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       status.className = "form__status";
-
-      // Basic validation
       if (!form.checkValidity()) {
         status.textContent = "// please fill in all fields correctly";
         status.classList.add("is-err");
         return;
       }
-
-      const action = form.getAttribute("action") || "";
-      // If the Formspree endpoint hasn't been set yet, guide the owner instead of failing.
+      var action = form.getAttribute("action") || "";
       if (action.indexOf("your-form-id") !== -1) {
         status.textContent = "// add your Formspree endpoint in index.html to enable sending";
         status.classList.add("is-err");
         return;
       }
-
       status.textContent = "// sending…";
-      fetch(action, {
-        method: "POST",
-        body: new FormData(form),
-        headers: { Accept: "application/json" }
-      })
+      fetch(action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } })
         .then(function (res) {
           if (res.ok) {
             form.reset();
-            status.textContent = "✓ Message sent — thanks, I'll be in touch!";
+            status.textContent = "\u2713 Message sent — thanks, I'll be in touch!";
             status.classList.add("is-ok");
-          } else {
-            throw new Error("Network response was not ok");
-          }
+          } else { throw new Error("bad response"); }
         })
         .catch(function () {
           status.textContent = "// something went wrong — email amold329@gmail.com instead";

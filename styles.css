@@ -763,13 +763,15 @@ strong { color: var(--text); font-weight: 600; }
 .to-top:hover { background: var(--accent-bright); transform: translateY(-3px); }
 
 /* ---------- 15. REVEAL ANIMATIONS ---------- */
-/* Only hide content when JS is present; otherwise everything stays visible. */
-.js .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
-.js .reveal.is-visible { opacity: 1; transform: none; }
+/* Fail-safe: content is VISIBLE by default. The hidden->reveal animation only
+   activates once script.js adds .reveal-anim to <html>. So if the script is
+   missing, blocked, or errors out, the whole page still shows normally. */
+.reveal-anim .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+.reveal-anim .reveal.is-visible { opacity: 1; transform: none; }
 
-/* Terminal line-by-line boot — only when JS marks it active */
-.js.anim-on .hero__terminal .term__line { opacity: 0; transform: translateY(4px); }
-.js.anim-on .hero__terminal .term__line.shown { opacity: 1; transform: none; transition: opacity 0.25s var(--ease), transform 0.25s var(--ease); }
+/* Terminal line-by-line boot — only when script.js adds .anim-on */
+.anim-on .hero__terminal .term__line { opacity: 0; transform: translateY(4px); }
+.anim-on .hero__terminal .term__line.shown { opacity: 1; transform: none; transition: opacity 0.25s var(--ease), transform 0.25s var(--ease); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -778,7 +780,7 @@ strong { color: var(--text); font-weight: 600; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  .js .reveal { opacity: 1; transform: none; }
+  .reveal-anim .reveal { opacity: 1; transform: none; }
   .hero__bg { animation: none; }
   .caret { animation: none; }
 }
