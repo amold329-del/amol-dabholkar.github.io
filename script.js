@@ -92,10 +92,16 @@
   ---------------------------------------------------------- */
   var nav = document.querySelector(".nav");
   var toTop = $("toTop");
+  var prog = $("scrollProgress");
 
   function onScroll() {
     if (nav) nav.classList.toggle("is-scrolled", window.scrollY > 8);
     if (toTop) toTop.classList.toggle("is-visible", window.scrollY > 600);
+    if (prog) {
+      var doc = document.documentElement;
+      var max = doc.scrollHeight - doc.clientHeight;
+      prog.style.transform = "scaleX(" + (max > 0 ? (doc.scrollTop / max) : 0) + ")";
+    }
   }
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
@@ -240,6 +246,41 @@
           status.textContent = "// something went wrong — email amold329@gmail.com instead";
           status.classList.add("is-err");
         });
+    });
+  }
+
+  /* ----------------------------------------------------------
+     10. STAT BARS + CARD 3D TILT / CURSOR GLOW (enhancements)
+  ---------------------------------------------------------- */
+  // Inject a thin progress bar under each stat (CSS animates it on reveal)
+  document.querySelectorAll(".stat").forEach(function (s) {
+    var bar = document.createElement("span");
+    bar.className = "stat__bar";
+    s.appendChild(bar);
+  });
+
+  // 3D tilt + cursor-following glow — desktop pointers only, motion allowed
+  var finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+  if (finePointer && !REDUCED) {
+    document.querySelectorAll(".skill-card, .stat, .edu-card, .cert").forEach(function (card) {
+      card.classList.add("tilt");
+      var rect = null;
+      card.addEventListener("mouseenter", function () { rect = card.getBoundingClientRect(); });
+      card.addEventListener("mousemove", function (e) {
+        if (!rect) rect = card.getBoundingClientRect();
+        var x = (e.clientX - rect.left) / rect.width;
+        var y = (e.clientY - rect.top) / rect.height;
+        card.style.transform =
+          "perspective(900px) rotateX(" + ((0.5 - y) * 7).toFixed(2) +
+          "deg) rotateY(" + ((x - 0.5) * 7).toFixed(2) + "deg)";
+        card.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+        card.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+        card.classList.add("is-tilting");
+      });
+      card.addEventListener("mouseleave", function () {
+        card.style.transform = "";
+        card.classList.remove("is-tilting");
+      });
     });
   }
 })();

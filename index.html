@@ -62,6 +62,16 @@
 </head>
 
 <body>
+  <!-- Ambient background FX (decorative, non-interactive) -->
+  <div class="fx" aria-hidden="true">
+    <span class="fx__aurora fx__aurora--1"></span>
+    <span class="fx__aurora fx__aurora--2"></span>
+    <span class="fx__aurora fx__aurora--3"></span>
+    <span class="fx__grid"></span>
+  </div>
+  <!-- Scroll / build progress bar -->
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
   <!-- Skip link for keyboard / screen-reader users -->
   <a class="skip-link" href="#main">Skip to content</a>
 
@@ -163,9 +173,26 @@
             <p class="term__line term__muted">[INFO] ……………… 400 tests executed</p>
             <p class="term__line term__summary">[INFO] Tests run: <b>400</b> · Failures: <b>0</b> · Skipped: 0</p>
             <p class="term__line term__build"><span class="pass">BUILD SUCCESS</span> &nbsp;·&nbsp; 100% green</p>
+            <p class="term__line term__cursor"><span class="term__prompt">$</span> <span class="term__blink">▋</span></p>
           </div>
         </div>
 
+      </div>
+    </section>
+
+    <!-- ============================================================
+         1.5 · CI/CD PIPELINE STRIP (animated, thematic divider)
+    ============================================================ -->
+    <section class="pipeline" aria-label="Continuous integration and delivery pipeline">
+      <div class="container pipeline__inner">
+        <span class="pipeline__label">ci-cd</span>
+        <ol class="pipeline__track">
+          <li class="pnode"><i class="fa-solid fa-code-commit" aria-hidden="true"></i><span>commit</span></li>
+          <li class="pnode"><i class="fa-solid fa-hammer" aria-hidden="true"></i><span>build</span></li>
+          <li class="pnode"><i class="fa-solid fa-vial-circle-check" aria-hidden="true"></i><span>test</span></li>
+          <li class="pnode"><i class="fa-solid fa-rocket" aria-hidden="true"></i><span>deploy</span></li>
+          <li class="pnode"><i class="fa-solid fa-wave-square" aria-hidden="true"></i><span>monitor</span></li>
+        </ol>
       </div>
     </section>
 
